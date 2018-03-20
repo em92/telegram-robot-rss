@@ -21,6 +21,7 @@ class BatchProcess(threading.Thread):
         self.update_interval = float(update_interval)
         self.bot = bot
         self.running = True
+        self.ignored_links = set()
 
     def run(self):
         """
@@ -68,15 +69,13 @@ class BatchProcess(threading.Thread):
             DateHandler.get_datetime_now()))
 
     def send_newest_messages(self, url, post, user):
-        post_update_date = DateHandler.parse_datetime(datetime=post.updated)
-        url_update_date = DateHandler.parse_datetime(datetime=url[1])
-
-        if post_update_date > url_update_date:
+        if post.link not in self.ignored_links:
             message = "[" + user[7] + "] <a href='" + post.link + \
                 "'>" + post.title + "</a>"
             try:
                 self.bot.send_message(
                     chat_id=user[0], text=message, parse_mode=ParseMode.HTML)
+                self.ignored_links.add(post.link)
             except Unauthorized:
                 self.db.update_user(telegram_id=user[0], is_active=0)
             except TelegramError:
